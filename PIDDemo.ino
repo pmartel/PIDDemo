@@ -17,7 +17,8 @@ const char ESC = 0x1B;
 // globals
 int     potCount = 0;        // value read from the pot
 float   angleRead;
-unsigned long   sTime;
+unsigned long   sTime;  // for tic(), toc()
+unsigned long   gTime;  // global for gTime = toc()
 
 // motor related
 // Create the motor shield object with the default I2C address
@@ -39,6 +40,38 @@ void loop() {
 
 // functions are alphabetical
 
+// using df(t) = (f(t)-f(t-h))/h)
+// where h is the time step
+
+float getDeriv( float x, float dt, bool startup ) {
+  float oldX, ret;
+
+  if (startup) { 
+    // initilize old values to current values
+    oldX = x;
+  }
+  ret = (x-oldX)/(dt * 1e-6);
+  oldX = x;
+  return ret;   
+}
+
+// this integrator just adds up rectangles.  There are much better ones
+// but for short times they're not worth the effort
+float getIntegral( float x, float dt, bool startup ) {
+  static float integral = 0;
+  const float windup = 10000;
+  
+  if (startup) {
+    integral = 0;  
+  }
+  else {
+    integral += x * 1e-6 * dt; // t is in usec
+  }
+  // integral must be limited to avoid windup
+  integral = constrain( integral, -windup, windup );
+  return integral;
+}
+
 
 void Help() {
   Serial << "PID controller demo\r\n";
@@ -47,21 +80,23 @@ void Help() {
   Serial << "p<number> - set proportional gain\r\n";
   Serial << "i<number> - set integral gain\r\n";
   Serial << "d<number> - set derivative gain\r\n";
-  Serial << "g - start\r\n";
+  Serial << "g - go\r\n";
   Serial << "s - stop\r\n\n";
 }
 
 
 
 void PID() {
-  int inByte;
-  bool controllerOn = false;
-  int sp;
-  float target;
-  float p, i, d;  // gain parameters
-  float integral, deriv;
-
-    while ( true ) {
+  int     inByte;
+  bool    controllerOn = false, starting;
+  int     sp;
+  float   target;
+  float   p, i, d;  // gain parameters
+  float   integral, deriv;
+  unsigned long   loopTime, lastTime;
+    
+  while ( true ) {
+    // process command if present 
     inByte = Serial.read();
     switch( inByte ) {
     case -1 : // no character
@@ -97,6 +132,7 @@ void PID() {
       break;
     case 'g' : // go - start controller
       controllerOn = true;
+      starting = true;
       break;
     case 's' : // stop controller
       controllerOn = false;
@@ -106,29 +142,49 @@ void PID() {
     } 
 
     if ( controllerOn ) {
-      float errorAng = ReadAngle() - target;
+      float errorAng, err;
+      if (starting) {
+        lastTime = micros();
+        integral = deriv = 0;
+      }
+      else {
+        loopTime = micros() - lastTime;
+        lastTime += loopTime; // so lastTime = micros()
+      }
 
-      if ( Timer( 1000 ) ) {
-        Serial << "Target angle = " << target << " (p, i, d) = (" << p << ", " << i << ", " << d << ")" << endl;
-        Serial <<  "Error = " << errorAng << endl << endl;
+      errorAng = ReadAngle() - target;
+      // pid calculation
+      err = p * errorAng + i * integral + d * deriv;
+
+       
+      // display periodically
+      if ( Timer( 500 ) ) {
+        Serial << "Target angle = " << target << " measured angle = " << ReadAngle() << endl;
+        Serial << "(p, i, d) = (" << p << ", " << i << ", " << d << ")" << endl;
+        Serial << "Error angle = " << errorAng <<  " integral =" << integral << " derivative = " << deriv << " loop time = " << loopTime << endl; 
+        Serial << "err = " << p << " * "<< errorAng << " + " << i  << " * "<< integral << " + " << d << " * "<< deriv <<endl;
+        Serial << "    = " << err << endl << endl;
       }
-      myMotor->setSpeed( sp );
-/*      
-      if( abs( errorAng ) <= deadBand ) {
-        myMotor->run(RELEASE); // make sure motor is stopped (coasting);      
-      }
-      else if ( errorAng < 0 ) {
+      // get new integral and derivative
+      integral = getIntegral(errorAng, (float)loopTime, starting );
+      deriv =  getDeriv(errorAng, (float)loopTime, starting );  // note flotAng
+      starting = false;
+      
+      // motor speed
+      sp = constrain( (int)err, -255, 255 );
+      myMotor->setSpeed( abs(sp) );
+      if ( sp <= 0 ) {
         myMotor->run(FORWARD);
       }
       else {
         myMotor->run(BACKWARD);    
       }
-   */
-   }
+    }
     else {
       myMotor->run(RELEASE); // make sure motor is stopped (coasting);      
     }
-  } // while in stPID 
+    delay(1);// extra pause
+  } // while true
 }
 
 
@@ -136,13 +192,11 @@ void PID() {
 // potCount and angle read are globals,for convenience in DisplayAngle
 // returns value for use in other pieces of code
 float ReadAngle() {
-    // read the analog in value:
+  // read the analog in value:
   potCount = analogRead(analogInPin);
   // emperically, angleRead = 143.996650585439 + (-0.24148432002069) * potCount
   angleRead = 143.996650585439 + (-0.241484320020696) * potCount;
-
   return angleRead;
-
 }
 
 // if at least t milliseconds has passed since last call, reset timer and return true
@@ -159,6 +213,7 @@ boolean Timer( unsigned long t ) {
     return false;
   }
 }
+
 // Timer utility functions.  Concept from Matlab
 void tic() {
   sTime = micros();
