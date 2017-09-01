@@ -167,9 +167,9 @@ void PID() {
       // display periodically
       if ( Timer( 500 ) ) {
         Serial << "Target angle = " << target << " measured angle = " << ReadAngle() << endl;
-        Serial << "(p, i, d) = (" << p << ", " << i << ", " << d << ")" << endl;
+        Serial << "(p, i, d) = (" << pS << ", " << iS << ", " << dS << ")" << endl;
         Serial << "Error angle = " << errorAng <<  " integral =" << integral << " derivative = " << deriv << " loop time = " << loopTime << endl; 
-        Serial << "err = " << p << " * "<< errorAng << " + " << i  << " * "<< integral << " + " << d << " * "<< deriv <<endl;
+        Serial << "err = " << pS << " * "<< errorAng << " + " << iS  << " * "<< integral << " + " << dS << " * "<< deriv <<endl;
         Serial << "    = " << err << endl << endl;
       }
       // get new integral and derivative
