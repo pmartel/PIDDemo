@@ -59,7 +59,7 @@ float getDeriv( float x, float dt, bool startup ) {
 // but for short times they're not worth the effort
 float getIntegral( float x, float dt, bool startup ) {
   static float integral = 0;
-  const float windup = 10000;
+  const float windup = 100000.;
   
   if (startup) {
     integral = 0;  
@@ -94,6 +94,7 @@ void PID() {
   float   p, i, d;  // gain parameters
   float   integral, deriv;
   unsigned long   loopTime, lastTime;
+  String  pS ="0.00", iS ="0.00", dS ="0.00";
     
   while ( true ) {
     // process command if present 
@@ -111,24 +112,30 @@ void PID() {
     case '?' :
       Help();
       Serial << "\r\nPID parameters\r\n";
-      Serial << "Target angle = " << target << " (p, i, d) = (" << p << ", " << i << ", " << d << ")" << endl;
+      Serial << "Target angle = " << target << " (p, i, d) = (" << pS << ", " << iS << ", " << dS << ")" << endl;
+      //Serial << p/(p-10.) << endl; //test
       break;
     case 'a' : // set desired angle
       target = Serial.parseFloat();
       target = constrain( target, -20, 140);
       Serial << "new target = " << target << endl;
       break;
-    case 'p' : 
-      p = Serial.parseFloat();
-      Serial << "new p = " << p << endl;
+    case 'p' :
+      // The Stream library's float only displays 2 decimal places
+      // this lets us see more
+      pS = Serial.readString(); 
+      p = pS.toFloat();
+      Serial << "new p = " << pS << endl;
       break;
     case 'i' : 
-      i = Serial.parseFloat();
-      Serial << "new i = " << i << endl;
+      iS = Serial.readString(); 
+      i = iS.toFloat();
+      Serial << "new i = " << iS << endl;
       break;
     case 'd' : 
-      d = Serial.parseFloat();
-      Serial << "new d = " << d << endl;
+      dS = Serial.readString(); 
+      d = dS.toFloat();
+      Serial << "new d = " << dS << endl;
       break;
     case 'g' : // go - start controller
       controllerOn = true;
@@ -183,7 +190,7 @@ void PID() {
     else {
       myMotor->run(RELEASE); // make sure motor is stopped (coasting);      
     }
-    delay(1);// extra pause
+    //delay(1);// extra pause
   } // while true
 }
 
