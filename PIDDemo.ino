@@ -19,7 +19,7 @@ int     potCount = 0;        // value read from the pot
 float   angleRead;
 unsigned long   sTime;  // for tic(), toc()
 unsigned long   gTime;  // global for gTime = toc()
-
+unsigned long   startMSec;
 // motor related
 // Create the motor shield object with the default I2C address
 Adafruit_MotorShield AFMS = Adafruit_MotorShield(); 
@@ -141,6 +141,7 @@ void PID() {
     case 'g' : // go - start controller
       controllerOn = true;
       starting = true;
+      startMSec = millis();
       break;
     case 's' : // stop controller
       controllerOn = false;
@@ -167,10 +168,11 @@ void PID() {
        
       // display periodically
       if ( Timer( 500 ) ) {
-        Serial << "Target angle = " << target << " measured angle = " << ReadAngle() << endl;
+        Serial << "at " << (millis()-startMSec)/1000. <<" sec. Target angle = " << target << " measured angle = " << ReadAngle() << endl;
         Serial << "(p, i, d) = (" << pS << ", " << iS << ", " << dS << ")" << endl;
         Serial << "Error angle = " << errorAng <<  " integral =" << integral << " derivative = " << deriv << " loop time = " << loopTime << endl; 
         Serial << "err = " << pS << " * "<< errorAng << " + " << iS  << " * "<< integral << " + " << dS << " * "<< deriv <<endl;
+        Serial << "err = " << p * errorAng << " + " << i * integral << " + " << d * deriv <<endl;
         Serial << "    = " << err << endl << endl;
       }
       // get new integral and derivative
