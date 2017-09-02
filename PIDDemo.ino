@@ -44,7 +44,8 @@ void loop() {
 // where h is the time step
 
 float getDeriv( float x, float dt, bool startup ) {
-  float oldX, ret;
+  static float oldX; 
+  float ret;
 
   if (startup) { 
     // initilize old values to current values
@@ -91,7 +92,7 @@ void PID() {
   bool    controllerOn = false, starting;
   int     sp;
   float   target;
-  float   p, i, d;  // gain parameters
+  float  p, i, d;  // gain parameters
   float   integral, deriv;
   unsigned long   loopTime, lastTime;
   String  pS ="0.00", iS ="0.00", dS ="0.00";
