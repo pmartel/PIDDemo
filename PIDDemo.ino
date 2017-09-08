@@ -170,7 +170,7 @@ void PID() {
       if ( Timer( 500 ) ) {
         Serial << "at " << (millis()-startMSec)/1000. <<" sec. Target angle = " << target << " measured angle = " << ReadAngle() << endl;
         Serial << "(p, i, d) = (" << pS << ", " << iS << ", " << dS << ")" << endl;
-        Serial << "Error angle = " << errorAng <<  " integral =" << integral << " derivative = " << deriv << " loop time = " << loopTime << endl; 
+        Serial << "Error angle = " << errorAng <<  " integral = " << integral << " derivative = " << deriv << " loop time = " << loopTime << endl; 
         Serial << "err = " << pS << " * "<< errorAng << " + " << iS  << " * "<< integral << " + " << dS << " * "<< deriv <<endl;
         Serial << "err = " << p * errorAng << " + " << i * integral << " + " << d * deriv <<endl;
         Serial << "    = " << err << endl << endl;
