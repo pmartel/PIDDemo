@@ -154,7 +154,7 @@ void PID() {
     } 
 
     if ( controllerOn ) {
-      float errorAng, err;
+      float errorAng, commandVal;
       if (starting) {
         lastTime = micros();
         integral = deriv = 0;
@@ -166,7 +166,7 @@ void PID() {
 
       errorAng = ReadAngle() - target;
       // pid calculation
-      err = p * errorAng + i * integral + d * deriv;
+      commandVal = p * errorAng + i * integral + d * deriv;
 
        
       // display periodically
@@ -174,9 +174,9 @@ void PID() {
         Serial << "at " << (millis()-startMSec)/1000. <<" sec. Target angle = " << target << " measured angle = " << ReadAngle() << endl;
         Serial << "(p, i, d) = (" << pS << ", " << iS << ", " << dS << ")" << endl;
         Serial << "Error angle = " << errorAng <<  " integral = " << integral << " derivative = " << deriv << " loop time = " << loopTime << endl; 
-        Serial << "err = " << pS << " * "<< errorAng << " + " << iS  << " * "<< integral << " + " << dS << " * "<< deriv <<endl;
-        Serial << "err = " << p * errorAng << " + " << i * integral << " + " << d * deriv <<endl;
-        Serial << "    = " << err << endl << endl;
+        Serial << "commandVal = " << pS << " * "<< errorAng << " + " << iS  << " * "<< integral << " + " << dS << " * "<< deriv <<endl;
+        Serial << "commandVal = " << p * errorAng << " + " << i * integral << " + " << d * deriv <<endl;
+        Serial << "    = " << commandVal << endl << endl;
       }
       // get new integral and derivative
       integral = getIntegral(errorAng, (float)loopTime, starting );
@@ -184,7 +184,7 @@ void PID() {
       starting = false;
       
       // motor speed
-      sp = constrain( (int)err, -255, 255 );
+      sp = constrain( int(commandVal), -255, 255 );
       myMotor->setSpeed( abs(sp) );
       if ( sp <= 0 ) {
         myMotor->run(FORWARD);
@@ -196,7 +196,8 @@ void PID() {
     else {
       myMotor->run(RELEASE); // make sure motor is stopped (coasting);      
     }
-    //delay(1);// extra pause
+    //pause until current time is > wait usec since last time
+    waitFor( 10000 );
   } // while true
 }
 
