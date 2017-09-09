@@ -8,7 +8,10 @@
 #include <Adafruit_MotorShield.h>
 
 // #include "ControlDemo.h"
-//Apparently Arduino doesn't like to let you write include files pr handle separate modules
+//Apparently Arduino doesn't like to let you write include files or handle separate modules
+
+// definitions
+#define UL unsigned long
 
 // constants 
 const int analogInPin = A0;  // Analog input pin that the potentiometer is attached to
@@ -17,9 +20,9 @@ const char ESC = 0x1B;
 // globals
 int     potCount = 0;        // value read from the pot
 float   angleRead;
-unsigned long   sTime;  // for tic(), toc()
-unsigned long   gTime;  // global for gTime = toc()
-unsigned long   startMSec;
+UL   sTime;  // for tic(), toc()
+UL   gTime;  // global for gTime = toc()
+UL   startMSec;
 // motor related
 // Create the motor shield object with the default I2C address
 Adafruit_MotorShield AFMS = Adafruit_MotorShield(); 
@@ -94,7 +97,7 @@ void PID() {
   float   target;
   float  p, i, d;  // gain parameters
   float   integral, deriv;
-  unsigned long   loopTime, lastTime;
+  UL   loopTime, lastTime;
   String  pS ="0.00", iS ="0.00", dS ="0.00";
     
   while ( true ) {
