@@ -214,9 +214,9 @@ float ReadAngle() {
 
 // if at least t milliseconds has passed since last call, reset timer and return true
 // allows non-blocking timed events
-boolean Timer( unsigned long t ) {
-  static unsigned long  last = 0;
-  unsigned long ms = millis();
+boolean Timer( UL t ) {
+  static UL  last = 0;
+  UL ms = millis();
   
   if ( ms >= t + last ) {
     last = ms;
@@ -232,8 +232,17 @@ void tic() {
   sTime = micros();
 }
 
-unsigned long toc() {
+UL toc() {
   return micros() - sTime;
 }
 
+//pause until current time is > wait usec since last time
+void waitFor( UL wait ) {
+  static UL lastTime = 0;
+  UL t;
+  do {
+    t = micros();
+  } while( lastTime + wait > t );
+  lastTime = t;  
+}
 
