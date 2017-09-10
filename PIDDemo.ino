@@ -43,51 +43,65 @@ void loop() {
 
 // functions are alphabetical
 
-// using df(t) = (f(t)-f(t-h))/h)
-// where h is the time step
+/*
+ * in “Multirate Filtering and Filter Banks” by Shlomo Engelberg (Circuit Cellar #324 July 2017); 
+ * the author describes the moving sum (boxcar integrator) low pass filter and explains that flipping the sign 
+ * of every other coefficient converts the low pass filter to a high pass filter.  
+ * He then says that by every other term you can get two sub-sums, a and b.  
+ * LP = a + b and HP = a – b.
+ * Try setting up a class for the integrator and derivative calculations
+ */
 
-float getDeriv( float x, float dt, bool startup ) {
-  static float oldX; 
-  float ret;
-
-  if (startup) { 
-    // initilize old values to current values
-    oldX = x;
-  }
-  ret = (x-oldX)/(dt * 1e-6);
-  oldX = x;
-  return ret;   
-}
-
-// this integrator just adds up rectangles.  There are much better ones
-// but for short times they're not worth the effort
-float getIntegral( float x, float dt, bool startup ) {
-  static float integral = 0;
+ class IntDeriv {
+  public:
+  float oddSum;
+  float evenSum;
+  boolean odd;
   const float windup = 100000.;
-  
-  if (startup) {
-    integral = 0;  
-  }
-  else {
-    integral += x * 1e-6 * dt; // t is in usec
-  }
-  // integral must be limited to avoid windup
-  integral = constrain( integral, -windup, windup );
-  return integral;
-}
 
+  IntDeriv(){
+    this->Clear();
+  }
+  
+  void AddTerm( float x, float dt ){
+    this->odd = !this->odd;
+    if( this->odd ){
+      this->oddSum += x * dt * 1e-6;
+    }
+    else{
+      this->evenSum += x * dt * 1e-6;
+    }
+  }
+  void Clear(){
+    this->oddSum = 0;
+    this->evenSum = 0;
+    this->odd = false;
+  }
+  float getDeriv(){
+    if ( this->odd ){
+      return this->oddSum - this->evenSum;
+    }
+    else {
+      return this->evenSum - this->oddSum;
+    }
+    
+  }
+  float getIntegral(){
+    return constrain( this->evenSum + this->oddSum, -this->windup, this->windup );
+  }
+ }  ID;
+ 
 
 void Help() {
   Serial << "PID controller demo\r\n";
-  Serial << "q - stop motor, retstore defaults\r\n";
+  Serial << "q - stop motor, restore defaults\r\n";
   Serial << "a<number> - set target angle\r\n";
   Serial << "p<number> - set proportional gain\r\n";
   Serial << "i<number> - set integral gain\r\n";
   Serial << "d<number> - set derivative gain\r\n";
   Serial << "g - go\r\n";
-  Serial << "s - stop\r\n\n";
+  Serial << "s - stop (leave set values)\r\n\n";
 }
-
 
 
 void PID() {
@@ -145,6 +159,7 @@ void PID() {
       controllerOn = true;
       starting = true;
       startMSec = millis();
+      ID.Clear();
       break;
     case 's' : // stop controller
       controllerOn = false;
@@ -179,8 +194,11 @@ void PID() {
         Serial << "    = " << commandVal << endl << endl;
       }
       // get new integral and derivative
-      integral = getIntegral(errorAng, (float)loopTime, starting );
-      deriv =  getDeriv(errorAng, (float)loopTime, starting );  // note flotAng
+      ID.AddTerm( errorAng, float(loopTime));
+//      integral = getIntegral(errorAng, (float)loopTime, starting );
+//      deriv =  getDeriv(errorAng, (float)loopTime, starting );  // note flotAng
+      integral = ID.getIntegral();
+      deriv = ID.getDeriv();
       starting = false;
       
       // motor speed
@@ -200,7 +218,6 @@ void PID() {
     waitFor( 10000 );
   } // while true
 }
-
 
 // read the angle and return it.  
 // potCount and angle read are globals,for convenience in DisplayAngle
