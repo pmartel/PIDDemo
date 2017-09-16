@@ -84,7 +84,8 @@ void Help() {
   Serial << "p<number> - set proportional gain\r\n";
   Serial << "i<number> - set integral gain\r\n";
   Serial << "d<number> - set derivative gain\r\n";
-  Serial << "g - go\r\n";
+  Serial << "l<number> - set loop time (usec)\r\n";
+  Serial << "c - clear calculated values\r\n";Serial << "g - go\r\n";
   Serial << "s - stop\r\n\n";
 }
 
@@ -97,7 +98,7 @@ void PID() {
   float   target;
   float  p, i, d;  // gain parameters
   float   integral, deriv;
-  UL   loopTime, lastTime;
+  UL   loopTime, lastTime, loopDelay = 10000;
   String  pS ="0.00", iS ="0.00", dS ="0.00";
     
   while ( true ) {
@@ -140,6 +141,13 @@ void PID() {
       dS = Serial.readString(); 
       d = dS.toFloat();
       Serial << "new d = " << dS << endl;
+      break;
+    case 'l' :
+      loopDelay = Serial.parseInt(); 
+      Serial << "new loop time = "<< loopDelay << endl;
+      break;
+    case 'c' :
+      starting = true;
       break;
     case 'g' : // go - start controller
       controllerOn = true;
@@ -197,7 +205,7 @@ void PID() {
       myMotor->run(RELEASE); // make sure motor is stopped (coasting);      
     }
     //pause until current time is > wait usec since last time
-    waitFor( 10000 );
+    waitFor( loopDelay );
   } // while true
 }
 
