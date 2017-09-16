@@ -86,7 +86,8 @@ void Help() {
   Serial << "d<number> - set derivative gain\r\n";
   Serial << "l<number> - set loop time (usec)\r\n";
   Serial << "c - clear calculated values\r\n";Serial << "g - go\r\n";
-  Serial << "s - stop\r\n\n";
+  Serial << "s - stop\r\n";
+  Serial << "# - comment (just display this line in output)\r\n\n";
 }
 
 
@@ -117,7 +118,8 @@ void PID() {
     case '?' :
       Help();
       Serial << "\r\nPID parameters\r\n";
-      Serial << "Target angle = " << target << " (p, i, d) = (" << pS << ", " << iS << ", " << dS << ")" << endl;
+      Serial << "Target angle = " << target << " (p, i, d) = (" << pS << ", " << iS << ", " << dS << ")"; 
+      Serial << " Loop is "<< loopDelay << " usec\r\n";
       //Serial << p/(p-10.) << endl; //test
       break;
     case 'a' : // set desired angle
@@ -157,6 +159,9 @@ void PID() {
     case 's' : // stop controller
       controllerOn = false;
       break;
+    case '#' : // comment
+     Serial << '#' << Serial.readString()<< endl;
+     break;
     default: // bad input, just eat the character
       break;
     } 
