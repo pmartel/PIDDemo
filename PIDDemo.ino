@@ -87,7 +87,7 @@ void Help() {
   Serial << "l<number> - set loop time (usec)\r\n";
   Serial << "c - clear calculated values\r\n";Serial << "g - go\r\n";
   Serial << "s - stop\r\n";
-  Serial << "# - comment (just display this line in output)\r\n\n";
+  Serial << " # - comment (just display this line in output)\r\n\n";
 }
 
 
@@ -99,7 +99,7 @@ void PID() {
   float   target;
   float  p, i, d;  // gain parameters
   float   integral, deriv;
-  UL   loopTime, lastTime, loopDelay = 10000;
+  UL   loopTime, lastTime, loopDelay = 50000;
   String  pS ="0.00", iS ="0.00", dS ="0.00";
     
   while ( true ) {
@@ -146,7 +146,7 @@ void PID() {
       break;
     case 'l' :
       loopDelay = Serial.parseInt(); 
-      Serial << "new loop time = "<< loopDelay << endl;
+      Serial << "new loop_time = "<< loopDelay << endl;
       break;
     case 'c' :
       starting = true;
