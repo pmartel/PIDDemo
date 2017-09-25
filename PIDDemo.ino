@@ -79,13 +79,14 @@ float getIntegral( float x, float dt, bool startup ) {
 
 void Help() {
   Serial << "PID controller demo\r\n";
-  Serial << "q - stop motor, retstore defaults\r\n";
+  Serial << "q - stop motor, restore defaults\r\n";
   Serial << "a<number> - set target angle\r\n";
   Serial << "p<number> - set proportional gain\r\n";
   Serial << "i<number> - set integral gain\r\n";
   Serial << "d<number> - set derivative gain\r\n";
   Serial << "l<number> - set loop time (usec)\r\n";
-  Serial << "c - clear calculated values\r\n";Serial << "g - go\r\n";
+  Serial << "c - clear calculated values\r\n";
+  Serial << "g - go\r\n";
   Serial << "s - stop\r\n";
   Serial << " # - comment (just display this line in output)\r\n\n";
 }
