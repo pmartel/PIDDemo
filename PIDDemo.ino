@@ -8,7 +8,7 @@
 #include <Adafruit_MotorShield.h>
 
 // #include "ControlDemo.h"
-//Apparently Arduino doesn't like to let you write include files or handle separate modules
+//Apparently Arduino doesn't like to let you write include files in include files or handle separate modules
 
 // definitions
 #define UL unsigned long
