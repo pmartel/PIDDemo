@@ -23,6 +23,7 @@ float   angleRead;
 UL   sTime;  // for tic(), toc()
 UL   gTime;  // global for gTime = toc()
 UL   startMSec;
+
 // motor related
 // Create the motor shield object with the default I2C address
 Adafruit_MotorShield AFMS = Adafruit_MotorShield(); 
@@ -78,18 +79,21 @@ float getIntegral( float x, float dt, bool startup ) {
 
 
 void Help() {
-  Serial << F("PID controller demo\r\n");
-  Serial << F("q - stop motor, restore defaults\r\n");
-  Serial << F("a<number> - set target angle\r\n");
-  Serial << F("p<number> - set proportional gain\r\n");
-  Serial << F("i<number> - set integral gain\r\n");
-  Serial << F("d<number> - set derivative gain\r\n");
-  Serial << F("l<number> - set loop time (usec)\r\n");
-  Serial << F("c - clear calculated values (int, deriv)\r\n");
-  Serial << F("g - go\r\n");
-  Serial << F("s - stop\r\n");
-  Serial << F("o - old controller commands\r\n"); // formerly in Control Demo
-  Serial << F(" # - comment (just display this line in output)\r\n\n");
+  Serial << F(\
+  "PID controller demo\r\n"\
+  "h or ? - print this help\r\n"\
+  "q - stop motor, restore defaults\r\n"\
+  "a<number> - set target angle\r\n"\
+  "p<number> - set proportional gain\r\n"\
+  "i<number> - set integral gain\r\n"\
+  "d<number> - set derivative gain\r\n"\
+  "l<number> - set loop time (usec)\r\n"\
+  "c - clear calculated values (int, deriv)\r\n"\
+  "g - go\r\n"\
+  "s - stop\r\n"\
+  "o - old controller commands\r\n"\ 
+  " # - comment (just display this line in output)\r\n\n");
+  // 'o' handles commands formerly in separate Control Demo program
 }
 
 
@@ -113,42 +117,43 @@ void PID() {
     case 'q' :
       controllerOn = false;
       myMotor->run(RELEASE); // make sure motor is stopped (coasting)
-      Serial << "Stopping controller, resetting parameters\r\n"; 
+      Serial << F("Stopping controller, resetting parameters\r\n"); 
       return;
       break;
     case 'h' :
     case '?' :
       Help();
-      Serial << "\r\nPID parameters\r\n";
-      Serial << "Target angle = " << target << " (p, i, d) = (" << pS << ", " << iS << ", " << dS << ")"; 
-      Serial << " Loop is "<< loopDelay << " usec\r\n";
+      Serial << F("\r\nPID parameters\r\n");
+      Serial << F("Target angle = ") << target << " (p, i, d) = (" << pS << ", " << iS << ", " << dS << ")"; 
+      Serial << F(" Loop is ") << loopDelay << " usec\r\n";
       //Serial << p/(p-10.) << endl; //test
       break;
     case 'a' : // set desired angle
       target = Serial.parseFloat();
       target = constrain( target, -20, 140);
-      Serial << "new target = " << target << endl;
+      Serial << F("new target = ") << target << endl;
       break;
     case 'p' :
       // The Stream library's float only displays 2 decimal places
       // this lets us see more
-      pS = Serial.readString(); 
-      p = pS.toFloat();
-      Serial << "new p = " << pS << endl;
+      //pS = Serial.readString(); 
+      //p = pS.toFloat();
+      p = ReadSerialFloat( pS ); //!!! test this.  Does pS get changed?
+      Serial << F("new p = ") << pS << endl;
       break;
     case 'i' : 
       iS = Serial.readString(); 
       i = iS.toFloat();
-      Serial << "new i = " << iS << endl;
+      Serial << F("new i = ") << iS << endl;
       break;
     case 'd' : 
       dS = Serial.readString(); 
       d = dS.toFloat();
-      Serial << "new d = " << dS << endl;
+      Serial << F("new d = ") << dS << endl;
       break;
     case 'l' :
       loopDelay = Serial.parseInt(); 
-      Serial << "new loop_time = "<< loopDelay << endl;
+      Serial << F("new loop_time = ") << loopDelay << endl;
       break;
     case 'c' :
       starting = true;
@@ -228,6 +233,11 @@ float ReadAngle() {
   return angleRead;
 }
 
+// auxiliary function to read floats with more precision than Serial.parseFloat
+float ReadSerialFloat(String s) {
+  s = Serial.readString();
+  return s.toFloat();
+}
 // if at least t milliseconds has passed since last call, reset timer and return true
 // allows non-blocking timed events
 boolean Timer( UL t ) {
