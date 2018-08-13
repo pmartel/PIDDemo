@@ -1,0 +1,7 @@
+Notes on the rebuild of the PID demonstrator I made for the iRaiders
+
+Over the summer of 2018, I took back the PID controller I made last summer.
+I made 3D printed parts for the pivot and motor mount.  The motor mount was lighter than the old one, so it needs less lead to counterbalance.
+On 8/12, I assembled the unit and tapped the pot shaft for a 6=32 screw, which makes the unit much steadier.  Unfortunately, the pot seems to be non-linear towards one end (high angles, low pot voltages) and goes to 0v at about 128 deg, 38 deg past vertical.  The pot turns to about 296 deg.  Also, as might be expected, the angle calibration from last summer is way off.  
+I'm working to combine the PID Demo software with the older Controller Demo software which allows angle display, manual motor control and a primitive bang-bang controller.  It would make sense to add other capabilities, such as letting the operator hold a position while typing in an angle and then dumping a table of angle vs pot count.
+
