@@ -8,7 +8,7 @@
 #include <Adafruit_MotorShield.h>
 
 // #include "ControlDemo.h"
-//Apparently Arduino doesn't like to let you write include files in include files or handle separate modules
+//Apparently Arduino doesn't like to let you write include files to handle separate modules
 
 // definitions
 #define UL unsigned long
@@ -78,17 +78,18 @@ float getIntegral( float x, float dt, bool startup ) {
 
 
 void Help() {
-  Serial << "PID controller demo\r\n";
-  Serial << "q - stop motor, restore defaults\r\n";
-  Serial << "a<number> - set target angle\r\n";
-  Serial << "p<number> - set proportional gain\r\n";
-  Serial << "i<number> - set integral gain\r\n";
-  Serial << "d<number> - set derivative gain\r\n";
-  Serial << "l<number> - set loop time (usec)\r\n";
-  Serial << "c - clear calculated values\r\n";
-  Serial << "g - go\r\n";
-  Serial << "s - stop\r\n";
-  Serial << " # - comment (just display this line in output)\r\n\n";
+  Serial << F("PID controller demo\r\n");
+  Serial << F("q - stop motor, restore defaults\r\n");
+  Serial << F("a<number> - set target angle\r\n");
+  Serial << F("p<number> - set proportional gain\r\n");
+  Serial << F("i<number> - set integral gain\r\n");
+  Serial << F("d<number> - set derivative gain\r\n");
+  Serial << F("l<number> - set loop time (usec)\r\n");
+  Serial << F("c - clear calculated values (int, deriv)\r\n");
+  Serial << F("g - go\r\n");
+  Serial << F("s - stop\r\n");
+  Serial << F("o - old controller commands\r\n"); // formerly in Control Demo
+  Serial << F(" # - comment (just display this line in output)\r\n\n");
 }
 
 
