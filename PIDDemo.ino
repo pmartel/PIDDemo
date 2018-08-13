@@ -138,17 +138,15 @@ void PID() {
       // this lets us see more
       //pS = Serial.readString(); 
       //p = pS.toFloat();
-      p = ReadSerialFloat( pS ); //!!! test this.  Does pS get changed?
+      p = ReadSerialFloat( &pS ); 
       Serial << F("new p = ") << pS << endl;
       break;
     case 'i' : 
-      iS = Serial.readString(); 
-      i = iS.toFloat();
+      i = ReadSerialFloat( &iS );
       Serial << F("new i = ") << iS << endl;
       break;
     case 'd' : 
-      dS = Serial.readString(); 
-      d = dS.toFloat();
+      d = ReadSerialFloat( &dS );
       Serial << F("new d = ") << dS << endl;
       break;
     case 'l' :
@@ -166,6 +164,8 @@ void PID() {
     case 's' : // stop controller
       controllerOn = false;
       break;
+    case 'o' : // old (Control Demo) commands
+      ControlDemoEntry();
     case '#' : // comment
      Serial << '#' << Serial.readString()<< endl;
      break;
@@ -191,11 +191,11 @@ void PID() {
        
       // display periodically
       if ( Timer( 500 ) ) {
-        Serial << "at " << (millis()-startMSec)/1000. <<" sec. Target angle = " << target << " measured angle = " << ReadAngle() << endl;
-        Serial << "(p, i, d) = (" << pS << ", " << iS << ", " << dS << ")" << endl;
-        Serial << "Error angle = " << errorAng <<  " integral = " << integral << " derivative = " << deriv << " loop time = " << loopTime << endl; 
-        Serial << "commandVal = " << pS << " * "<< errorAng << " + " << iS  << " * "<< integral << " + " << dS << " * "<< deriv <<endl;
-        Serial << "commandVal = " << p * errorAng << " + " << i * integral << " + " << d * deriv <<endl;
+        Serial << "at " << (millis()-startMSec)/1000. << F(" sec. Target angle = ") << target << F(" measured angle = ") << ReadAngle() << endl;
+        Serial << F("(p, i, d) = (") << pS << ", " << iS << ", " << dS << ")" << endl;
+        Serial << F("Error angle = ") << errorAng <<  " integral = " << integral << " derivative = " << deriv << " loop time = " << loopTime << endl; 
+        Serial << F("commandVal = ") << pS << " * "<< errorAng << " + " << iS  << " * "<< integral << " + " << dS << " * "<< deriv <<endl;
+        Serial << F("commandVal = ") << p * errorAng << " + " << i * integral << " + " << d * deriv <<endl;
         Serial << "    = " << commandVal << endl << endl;
       }
       // get new integral and derivative
@@ -219,7 +219,9 @@ void PID() {
     //pause until current time is > wait usec since last time
     waitFor( loopDelay );
   } // while true
-}
+} // PID()
+
+
 
 
 // read the angle and return it.  
@@ -233,10 +235,11 @@ float ReadAngle() {
   return angleRead;
 }
 
-// auxiliary function to read floats with more precision than Serial.parseFloat
-float ReadSerialFloat(String s) {
-  s = Serial.readString();
-  return s.toFloat();
+// Auxiliary function to read floats with more precision than Serial.parseFloat
+// The string passed in (as a ointer) gets the value read from Serial
+float ReadSerialFloat(String *s) {
+  *s = Serial.readString();
+  return (*s).toFloat();
 }
 // if at least t milliseconds has passed since last call, reset timer and return true
 // allows non-blocking timed events
@@ -271,4 +274,165 @@ void waitFor( UL wait ) {
   } while( lastTime + wait > t );
   lastTime = t;  
 }
+
+// code for 'old' (ControlDemo) tests
+// states
+const char stIdle = 'i';
+const char stDisplay = 'a'; // angle display
+const char stManual = 'm';
+const char stBang = 'b';
+
+// globals
+char    state, oldState;
+
+void ControlDemoEntry() {
+  myMotor->run(RELEASE); // make sure motor is stopped (coasting)
+  state = oldState = stIdle;
+  HelpIdle();
+  CDLoop();
+}
+
+void CDLoop() {
+  bool running = true;
+  while ( running ) {
+    switch( state ) {
+    case stIdle :
+      HelpIdle();
+      break;
+    case stDisplay :
+      Serial << F(\
+      "Angle display mode\r\n"\
+      "q to return to Idle\r\n");
+      break;
+    case stManual :
+      Serial << "Manual motor control mode \r\n";
+      Serial << "Enter a number -255 to 255 to set motor speed\r\n";
+      Serial << "q to stop motor return to Idle state\r\n";
+      break;
+    case stBang :
+      HelpBang();
+      break;
+    case stExit :
+      running = false;
+      myMotor->run(RELEASE); // make sure motor is stopped (coasting)
+      break;
+    default :
+      Serial << "Unknown state 0x" << _HEX(state) << endl;
+      Serial << "returning to Idle state\r\n";
+      Quit();
+      break;
+    }
+  }  
+}
+
+void HelpBang() {
+  Serial << "Bang bang controller mode\r\n";
+  Serial << "q - stop motor return to Idle state\r\n";
+  Serial << "a<number> - set target angle\r\n";
+  Serial << "d<number> - set (1/2) deadband\r\n";
+  Serial << "g - start\r\n";
+  Serial << "s - stop but stay in bang-bang mode\r\n";
+  Serial << "v<number> - set motor speed, 0-255 default 150\r\n\n";  
+}
+
+void HelpIdle() {
+  Serial << F( \
+  "Control Demo code\r\n"\
+  "idle mode\r\n"\
+  "Use lower case commands\r\n"\
+  "depending on your terminal you may need to hit enter\r\n"\
+  "q will stop the motor and return to the main loop\r\n"\
+  "h or ? - print this help\r\n"\
+  "a - display angle\r\n"\
+  "m - manual motor control\r\n"\
+  "b - bang-bang controller\r\n\n"\
+  "x - eXit old code, return to PID\r\n");
+}
+
+void ManualMotor() {
+  int inByte, inNum;
+  static int sp = 0, oldSp = 0;
+
+  inByte = Serial.peek();
+  switch( inByte ) {
+  case 'q' :
+    Quit();
+    Serial.read(); // remove character
+    return;
+    break;
+  case 'h' :
+  case '?' :
+   CDHelp();
+    Serial.read(); // remove character
+    return;
+    break;
+  case -1 : // no input
+    Serial << "speed " << sp << "  angle " << ReadAngle() << endl;
+    delay(500);
+    return;
+    break;
+  default: // assume input is a number
+    inNum = Serial.parseInt();
+    break;
+  }
+  Serial << "inByte = " << inByte << endl;
+  Serial << "inNum = " << inNum << endl;
+  oldSp = sp;
+  //limit the speed
+  sp = constrain( inNum, -255, 255 );
+  Serial   << "Changing speed from " << oldSp << " to " << sp << endl;
+  myMotor->setSpeed( abs(sp) );
+  if ( sp >= 0 ) {
+      myMotor->run(FORWARD);
+  }
+  else {
+      myMotor->run(BACKWARD);    
+  }
+}
+
+
+void ProcessInput() {
+  int byteIn;
+  
+  if (Serial.available() > 0 ) {
+    byteIn = Serial.read();
+    switch( byteIn ) {
+    case 'q' :
+      Quit();
+      break;
+    case 'h' :
+    case '?' :
+      CDHelp();
+      break;
+    case 'a' :
+      myMotor->run(RELEASE); // make sure motor is stopped (coasting) just in case
+      oldState = state;
+      state = stDisplay;
+      break;
+    case 'm' :
+      oldState = state;
+      state = stManual;
+      break;
+    case 'b' :
+      oldState = state;
+      state = stBang;
+      break;
+    case 'x' :
+      oldState = state;
+      state = stExit;
+    default :  
+      break;
+    }
+  }
+}
+
+void Quit() {
+  myMotor->run(RELEASE); // make sure motor is stopped (coasting)
+  oldState = state;
+  state = stIdle;
+}
+
+// if at least t milliseconds has passed since last call, reset timer and return true
+// allows non-blocking timed events
+
 
