@@ -282,6 +282,7 @@ const char stIdle = 'i';
 const char stAngle = 'a'; // angle display
 const char stManual = 'm';
 const char stBang = 'b';
+const char stAngTable = 't';
 const char stExit = 'x';
 
 // globals
@@ -347,6 +348,9 @@ void CDLoop() {
       running = false;
       myMotor->run(RELEASE); // make sure motor is stopped (coasting)
       break;
+    case stAngTable :
+      AngleTable();
+      break;
     default :
       Serial << F("Unknown state 0x") << _HEX(state) << endl;
       Serial << F("returning to Idle state\r\n");
@@ -355,6 +359,29 @@ void CDLoop() {
     }
   }  
 } // CDLoop()
+
+void AngleTable() {
+  int i, n, Angle[10], Count[10];
+  int byteIn;
+  
+  Serial << F(\
+  "Set an angle on the arm and enter it.\r\n"\
+  "The angle and pot count will be recorded.\r\n"\
+  "When you press 'q' or have entered  10 angles\r\n"\
+  "a table will be printed.\r\n\n");
+  for ( n = 0; n < 10; n++ ) {
+    while (Serial.available() <= 0 ) { /* wait */}
+    byteIn = Serial.peek();
+    if ( byteIn == 'q' ) break;
+    Angle[n] = Serial.parseInt();
+    Count[n] = analogRead(analogInPin);
+  }
+  Serial << F("idx, angle, count\r\n");
+  for ( i = 0; i < n; i++ ){
+    Serial << i+1 << ", " << Angle[i] << ", " << Count[i] << endl; 
+  }
+  Serial << endl;
+}
 
 void BangBang() {
   int inByte;
@@ -543,6 +570,10 @@ void ProcessInput() {
       break;
     case 'b' :
       state = stBang;
+      gotNewState = true;
+      break;
+    case 't' :
+      state = stAngTable;
       gotNewState = true;
       break;
     case 'x' :
