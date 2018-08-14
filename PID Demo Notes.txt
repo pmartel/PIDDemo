@@ -7,3 +7,5 @@ On 8/12, I assembled the unit and tapped the pot shaft for a 6=32 screw, which m
 I'm working to combine the PID Demo software with the older Controller Demo software which allows angle display, manual motor control and a primitive bang-bang controller.  It would make sense to add other capabilities, such as letting the operator hold a position while typing in an angle and then dumping a table of angle vs pot count.
 
 It may help to put a resistor in series with the low side of the pot.  Try measuring the resistance vs angle (it's easy to measure the angle with a smartphone)
+
+I got the angle table working.  Angle vs count looks reasonably linear until count "saturates" at 0 around 120 degrees.
