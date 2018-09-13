@@ -185,6 +185,12 @@ void PID() {
       }
 
       errorAng = ReadAngle() - target;
+      
+      // get new integral and derivative
+      integral = getIntegral(errorAng, (float)loopTime, starting );
+      deriv =  getDeriv(errorAng, (float)loopTime, starting );  // note flotAng
+      starting = false;
+
       // pid calculation
       commandVal = p * errorAng + i * integral + d * deriv;
 
@@ -198,10 +204,6 @@ void PID() {
         Serial << F("commandVal = ") << p * errorAng << " + " << i * integral << " + " << d * deriv <<endl;
         Serial << "    = " << commandVal << endl << endl;
       }
-      // get new integral and derivative
-      integral = getIntegral(errorAng, (float)loopTime, starting );
-      deriv =  getDeriv(errorAng, (float)loopTime, starting );  // note flotAng
-      starting = false;
       
       // motor speed
       sp = constrain( int(commandVal), -255, 255 );
@@ -230,8 +232,8 @@ void PID() {
 float ReadAngle() {
   // read the analog in value:
   potCount = analogRead(analogInPin);
-  // emperically, angleRead = 143.996650585439 + (-0.24148432002069) * potCount
-  angleRead = 143.996650585439 + (-0.241484320020696) * potCount;
+  // emperically, angleRead = -89.4 + 0.267 * potCount
+  angleRead = -89.4 + 0.267 * potCount;
   return angleRead;
 }
 
