@@ -47,30 +47,25 @@ void loop() {
 // using df(t) = (f(t)-f(t-h))/h)
 // where h is the time step
 
-float getDeriv( float x, float dt, bool startup ) {
+float getDeriv( float *x, float dt, bool startup ) {
   static float oldX; 
   float ret;
 
-  if (startup) { 
-    // initilize old values to current values
-    oldX = x;
-  }
-  ret = (x-oldX)/(dt * 1e-6);
-  oldX = x;
+  ret = (x[0]-x[1])/(dt * 1e-6); // t is in usec
   return ret;   
 }
 
 // this integrator just adds up rectangles.  There are much better ones
 // but for short times they're not worth the effort
-float getIntegral( float x, float dt, bool startup ) {
-  static float integral = 0;
+float getIntegral( float *x, float dt, bool startup ) {
+  static float integral;
   const float windup = 100000.;
   
   if (startup) {
     integral = 0;  
   }
   else {
-    integral += x * 1e-6 * dt; // t is in usec
+    integral += x[0] * 1e-6 * dt; // t is in usec
   }
   // integral must be limited to avoid windup
   integral = constrain( integral, -windup, windup );
@@ -101,10 +96,16 @@ void Help() {
 void PID() {
   int     inByte;
   bool    controllerOn = false, starting;
-  int     sp;
+  int     motorSpeed;
   float   target;
+  
   float  p, i, d;  // gain parameters
   float   integral, deriv;
+  
+  const int errorHistoryLength = 4;
+  int histIdx;
+  float errorHistory[errorHistoryLength+1];
+  
   UL   loopTime, lastTime, loopDelay = 50000;
   String  pS ="0.00", iS ="0.00", dS ="0.00";
     
@@ -174,7 +175,7 @@ void PID() {
     } 
 
     if ( controllerOn ) {
-      float errorAng, commandVal;
+      float  commandVal;
       if (starting) {
         lastTime = micros();
         integral = deriv = 0;
@@ -184,31 +185,40 @@ void PID() {
         lastTime += loopTime; // so lastTime = micros()
       }
 
-      errorAng = ReadAngle() - target;
-      
+      //update error history  Having an error history will let us use more sophisticated
+      // algorithms for integral and derivative
+      for ( histIdx = errorHistoryLength; histIdx > 0; histIdx-- ) {
+        errorHistory[histIdx] = errorHistory[histIdx-1];
+      }
+      errorHistory[0] = ReadAngle() - target;
+      if ( starting ) {
+        for ( histIdx = 1; histIdx <  errorHistoryLength; histIdx++ ) {
+          errorHistory[histIdx] = errorHistory[0];
+        }
+      }
       // get new integral and derivative
-      integral = getIntegral(errorAng, (float)loopTime, starting );
-      deriv =  getDeriv(errorAng, (float)loopTime, starting );  // note flotAng
+      integral = getIntegral(errorHistory, (float)loopTime, starting );
+      deriv =  getDeriv(errorHistory, (float)loopTime, starting );  // note flotAng
       starting = false;
 
       // pid calculation
-      commandVal = p * errorAng + i * integral + d * deriv;
+      commandVal = p * errorHistory[0] + i * integral + d * deriv;
 
        
       // display periodically
       if ( Timer( 500 ) ) {
         Serial << "at " << (millis()-startMSec)/1000. << F(" sec. Target angle = ") << target << F(" measured angle = ") << ReadAngle() << endl;
         Serial << F("(p, i, d) = (") << pS << ", " << iS << ", " << dS << ")" << endl;
-        Serial << F("Error angle = ") << errorAng <<  " integral = " << integral << " derivative = " << deriv << " loop time = " << loopTime << endl; 
-        Serial << F("commandVal = ") << pS << " * "<< errorAng << " + " << iS  << " * "<< integral << " + " << dS << " * "<< deriv <<endl;
-        Serial << F("commandVal = ") << p * errorAng << " + " << i * integral << " + " << d * deriv <<endl;
+        Serial << F("Error angle = ") << errorHistory[0] <<  " integral = " << integral << " derivative = " << deriv << " loop time = " << loopTime << endl; 
+        Serial << F("commandVal = ") << pS << " * "<< errorHistory[0] << " + " << iS  << " * "<< integral << " + " << dS << " * "<< deriv <<endl;
+        Serial << F("commandVal = ") << p * errorHistory[0] << " + " << i * integral << " + " << d * deriv <<endl;
         Serial << "    = " << commandVal << endl << endl;
       }
       
       // motor speed
-      sp = constrain( int(commandVal), -255, 255 );
-      myMotor->setSpeed( abs(sp) );
-      if ( sp <= 0 ) {
+      motorSpeed = constrain( int(commandVal), -255, 255 );
+      myMotor->setSpeed( abs(motorSpeed) );
+      if ( motorSpeed <= 0 ) {
         myMotor->run(FORWARD);
       }
       else {
@@ -388,7 +398,7 @@ void AngleTable() {
 void BangBang() {
   int inByte;
   bool controllerOn = false;
-  int sp = 250;
+  int motorSpeed = 60;
   float target;
   float deadBand = 10;
   
@@ -406,7 +416,7 @@ void BangBang() {
     case '?' :
       HelpBang();
       Serial << F("\r\nBang Bang parameters\r\n");
-      Serial << "Target angle = " << target << " deadband = " << deadBand << " motor speed = " << sp << endl;
+      Serial << "Target angle = " << target << " deadband = " << deadBand << " motor speed = " << motorSpeed << endl;
       break;
     case 'a' : // set desired angle
       target = Serial.parseFloat();
@@ -425,9 +435,9 @@ void BangBang() {
       controllerOn = false;
       break;
     case 'v' : // set motor speed (default = 150)
-      sp = Serial.parseInt();
-      sp = constrain( sp, 0, 255);
-      Serial << "new speed = " << sp << endl;
+      motorSpeed = Serial.parseInt();
+      motorSpeed = constrain( motorSpeed, 0, 255);
+      Serial << "new speed = " << motorSpeed << endl;
       break;
       break;
     default: // bad input, just eat the character
@@ -438,10 +448,10 @@ void BangBang() {
       float errorAng = ReadAngle() - target;
 
       if ( Timer( 1000 ) ) {
-        Serial << "Target angle = " << target << " deadband = " << deadBand << " motor speed = " << sp << endl;
+        Serial << "Target angle = " << target << " deadband = " << deadBand << " motor speed = " << motorSpeed << endl;
         Serial <<  "Error = " << errorAng << endl << endl;
       }
-      myMotor->setSpeed( sp );
+      myMotor->setSpeed( motorSpeed );
       if( abs( errorAng ) <= deadBand ) {
         myMotor->run(RELEASE); // make sure motor is stopped (coasting);      
       }
@@ -482,7 +492,7 @@ void HelpBang() {
   "d<number> - set (1/2) deadband\r\n"\
   "g - start\r\n"\
   "s - stop but stay in bang-bang mode\r\n"\
-  "v<number> - set motor speed, 0-255 default 150\r\n\n");  
+  "v<number> - set motor speed, 0-255 default 60\r\n\n");  
 }
 
 void HelpIdle() {
