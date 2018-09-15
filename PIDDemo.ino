@@ -131,7 +131,7 @@ void PID() {
       break;
     case 'a' : // set desired angle
       target = Serial.parseFloat();
-      target = constrain( target, -20, 140);
+      target = constrain( target, -15,185);
       Serial << F("new target = ") << target << endl;
       break;
     case 'p' :
@@ -588,8 +588,9 @@ void ProcessInput() {
     case 'x' :
       state = stExit;
       gotNewState = true;
-    default : 
-      return; // avoid reading unknowm byte 
+    default :
+      Serial << F("unknown command <") << byteIn << "> 0x";
+      Serial.println(byteIn, HEX);
       break;
     }
     Serial.read();
