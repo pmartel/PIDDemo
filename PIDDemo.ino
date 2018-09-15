@@ -166,6 +166,8 @@ void PID() {
       controllerOn = false;
       break;
     case 'o' : // old (Control Demo) commands
+      controllerOn = false;
+      myMotor->run(RELEASE); // make sure motor is stopped (coasting)
       ControlDemoEntry();
     case '#' : // comment
      Serial << '#' << Serial.readString()<< endl;
@@ -179,6 +181,10 @@ void PID() {
       if (starting) {
         lastTime = micros();
         integral = deriv = 0;
+        // force the parameters to reload
+        p = pS.toFloat();
+        i = iS.toFloat();
+        d = dS.toFloat();
       }
       else {
         loopTime = micros() - lastTime;
@@ -224,7 +230,7 @@ void PID() {
       else {
         myMotor->run(BACKWARD);    
       }
-    }
+    } // if (controllerOn )
     else {
       myMotor->run(RELEASE); // make sure motor is stopped (coasting);      
     }
@@ -232,8 +238,6 @@ void PID() {
     waitFor( loopDelay );
   } // while true
 } // PID()
-
-
 
 
 // read the angle and return it.  
@@ -248,9 +252,10 @@ float ReadAngle() {
 }
 
 // Auxiliary function to read floats with more precision than Serial.parseFloat
-// The string passed in (as a ointer) gets the value read from Serial
+// The string passed in (as a pointer) gets the value read from Serial
 float ReadSerialFloat(String *s) {
   *s = Serial.readString();
+  s->trim();
   return (*s).toFloat();
 }
 // if at least t milliseconds has passed since last call, reset timer and return true
@@ -302,20 +307,12 @@ char    state;
 bool    gotNewState;
 
 //function declarations to avoid errors, but why?
-/*
-void HelpIdle();
-void ProcessInput();
-void DisplayAngle();
-void ManualMotor();
-void HelpBang();
-void BangBang();
-*/
 
 void ControlDemoEntry() {
   myMotor->run(RELEASE); // make sure motor is stopped (coasting)
   state =  stIdle;
   gotNewState = true;
-  HelpIdle();
+  //HelpIdle();
   CDLoop();
 }
 
@@ -604,5 +601,3 @@ void Quit() {
   state = stIdle;
   gotNewState = true;
 }
-
-
