@@ -589,7 +589,7 @@ void ProcessInput() {
       state = stExit;
       gotNewState = true;
     default :
-      Serial << F("unknown command <") << byteIn << "> 0x";
+      Serial << F("unknown command <") << (char)byteIn << "> 0x";
       Serial.println(byteIn, HEX);
       break;
     }
