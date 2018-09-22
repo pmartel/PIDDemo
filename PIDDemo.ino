@@ -19,10 +19,13 @@ const char ESC = 0x1B;
 
 // globals
 int     potCount = 0;        // value read from the pot
-float   angleRead;
+float   angleRead;           // "angle red"
 UL   sTime;  // for tic(), toc()
 UL   gTime;  // global for gTime = toc()
 UL   startMSec;
+// flags.  Having them global makes them accessible anywhere
+bool fTableDisplay = false; // display output in tabular form
+bool fZeroIntegral = false; // zero integral when sign of error changes
 
 // motor related
 // Create the motor shield object with the default I2C address
@@ -47,8 +50,7 @@ void loop() {
 // using df(t) = (f(t)-f(t-h))/h)
 // where h is the time step
 
-float getDeriv( float *x, float dt, bool startup ) {
-  static float oldX; 
+float getDeriv( float *x, float dt ) {
   float ret;
 
   ret = (x[0]-x[1])/(dt * 1e-6); // t is in usec
@@ -57,16 +59,20 @@ float getDeriv( float *x, float dt, bool startup ) {
 
 // this integrator just adds up rectangles.  There are much better ones
 // but for short times they're not worth the effort
-float getIntegral( float *x, float dt, bool startup ) {
+float getIntegral( float *x, float dt, bool clearInt ) {
   static float integral;
   const float windup = 100000.;
   
-  if (startup) {
+  if (clearInt) {
     integral = 0;  
   }
-  else {
-    integral += x[0] * 1e-6 * dt; // t is in usec
+  // this kills the integral if the error goes through 0
+  if ( fZeroIntegral ) {
+    if ( x[0] * x[1] < 0. ) {
+      integral = 0;
+    }
   }
+  integral += x[0] * 1e-6 * dt; // t is in usec
   // integral must be limited to avoid windup
   integral = constrain( integral, -windup, windup );
   return integral;
@@ -86,7 +92,8 @@ void Help() {
   "c - clear calculated values (int, deriv)\r\n"\
   "g - go\r\n"\
   "s - stop\r\n"\
-  "o - old controller commands\r\n"\ 
+  "o - old controller commands\r\n"\
+  "f - flag commands\r\n"\
   " # - comment (just display this line in output)\r\n\n");
   // 'o' handles commands formerly in separate Control Demo program
 }
@@ -105,7 +112,7 @@ void PID() {
   const int errorHistoryLength = 4;
   int histIdx;
   float errorHistory[errorHistoryLength+1];
-  
+
   UL   loopTime, lastTime, loopDelay = 50000;
   String  pS ="0.00", iS ="0.00", dS ="0.00";
     
@@ -127,6 +134,7 @@ void PID() {
       Serial << F("\r\nPID parameters\r\n");
       Serial << F("Target angle = ") << target << " (p, i, d) = (" << pS << ", " << iS << ", " << dS << ")"; 
       Serial << F(" Loop is ") << loopDelay << " usec\r\n";
+      Serial << F("Tabular display ") << fTableDisplay << F(", zero integral on sign change ") << fZeroIntegral << endl;
       //Serial << p/(p-10.) << endl; //test
       break;
     case 'a' : // set desired angle
@@ -169,6 +177,10 @@ void PID() {
       controllerOn = false;
       myMotor->run(RELEASE); // make sure motor is stopped (coasting)
       ControlDemoEntry();
+      break;
+    case 'f' : // flag commands
+      FlagCommand();
+      break; 
     case '#' : // comment
      Serial << '#' << Serial.readString()<< endl;
      break;
@@ -185,6 +197,10 @@ void PID() {
         p = pS.toFloat();
         i = iS.toFloat();
         d = dS.toFloat();
+        if ( fTableDisplay ){
+          // display header
+          Serial << F("Time\tATarget\tAngle\terr P") << pS << F("\tI") << iS << F("\tD") << dS << F("\tComand\r\n");
+        }
       }
       else {
         loopTime = micros() - lastTime;
@@ -203,8 +219,8 @@ void PID() {
         }
       }
       // get new integral and derivative
-      integral = getIntegral(errorHistory, (float)loopTime, starting );
-      deriv =  getDeriv(errorHistory, (float)loopTime, starting );  // note flotAng
+      integral = getIntegral(errorHistory, (float)loopTime, starting);
+      deriv =  getDeriv(errorHistory, (float)loopTime );  // note flotAng
       starting = false;
 
       // pid calculation
@@ -213,12 +229,20 @@ void PID() {
        
       // display periodically
       if ( Timer( 500 ) ) {
-        Serial << "at " << (millis()-startMSec)/1000. << F(" sec. Target angle = ") << target << F(" measured angle = ") << ReadAngle() << endl;
-        Serial << F("(p, i, d) = (") << pS << ", " << iS << ", " << dS << ")" << endl;
-        Serial << F("Error angle = ") << errorHistory[0] <<  " integral = " << integral << " derivative = " << deriv << " loop time = " << loopTime << endl; 
-        Serial << F("commandVal = ") << pS << " * "<< errorHistory[0] << " + " << iS  << " * "<< integral << " + " << dS << " * "<< deriv <<endl;
-        Serial << F("commandVal = ") << p * errorHistory[0] << " + " << i * integral << " + " << d * deriv <<endl;
-        Serial << "    = " << commandVal << endl << endl;
+        if ( fTableDisplay ) {
+          //Serial << F("Time\tTarget\tAngle\terrP") << pS << F("\tI") << iS << F("\tD") << dS << F("\tmotor\r\n");
+          Serial << (millis()-startMSec)/1000. << F("\t") << target << F("\t") << ReadAngle();
+          Serial << F("\t") << errorHistory[0] << F("\t") << integral << F("\t") << deriv << F("\t") << commandVal; 
+          Serial << endl;
+        }
+        else { // old verbose display
+          Serial << "at " << (millis()-startMSec)/1000. << F(" sec. Target angle = ") << target << F(" measured angle = ") << ReadAngle() << endl;
+          Serial << F("(p, i, d) = (") << pS << ", " << iS << ", " << dS << ")" << endl;
+          Serial << F("Error angle = ") << errorHistory[0] <<  " integral = " << integral << " derivative = " << deriv << " loop time = " << loopTime << endl; 
+          Serial << F("commandVal = ") << pS << " * "<< errorHistory[0] << " + " << iS  << " * "<< integral << " + " << dS << " * "<< deriv <<endl;
+          Serial << F("commandVal = ") << p * errorHistory[0] << " + " << i * integral << " + " << d * deriv <<endl;
+          Serial << "    = " << commandVal << endl << endl;
+        }
       }
       
       // motor speed
@@ -293,6 +317,34 @@ void waitFor( UL wait ) {
 }
 
 /********************************************************************************/
+// flag functions
+void FlagCommand(){
+  int inByte;
+
+  while (Serial.available() >0 ) {
+    inByte = Serial.read();
+    switch (inByte ) {
+    case '?' :
+      Serial << F( " usage:\r\nft{1|0} turn Table Display mode on|off\r\nfz{1|0}turn Zero the integral mode {on|off}\r\n");
+      break;
+    case 't' :
+        fTableDisplay = (Serial.read() == '1' );
+      break;  
+    case 'z' :
+        fZeroIntegral = (Serial.read() == '1' );
+      break;  
+    default :
+      Serial << F("unknown command <") << (char)inByte << "> 0x";
+      Serial.println(inByte, HEX);
+      
+      break;  
+    }
+    // always display flags at end
+    Serial << F("Tabular display ") << fTableDisplay << F(" zero integral on sign change ") << fZeroIntegral << endl;      
+  }
+}
+
+/********************************************************************************/
 // code for 'old' (ControlDemo) tests
 // states
 const char stIdle = 'i';
@@ -305,8 +357,6 @@ const char stExit = 'x';
 // globals
 char    state;
 bool    gotNewState;
-
-//function declarations to avoid errors, but why?
 
 void ControlDemoEntry() {
   myMotor->run(RELEASE); // make sure motor is stopped (coasting)
@@ -602,3 +652,4 @@ void Quit() {
   state = stIdle;
   gotNewState = true;
 }
+
