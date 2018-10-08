@@ -638,6 +638,7 @@ void ProcessInput() {
     case 'x' :
       state = stExit;
       gotNewState = true;
+      break;
     default :
       Serial << F("unknown command <") << (char)byteIn << "> 0x";
       Serial.println(byteIn, HEX);
