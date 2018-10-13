@@ -12,4 +12,28 @@ I got the angle table working.  Angle vs count looks reasonably linear until cou
 
 On 8/14, I measured angle vs resistance after putting a paper shim in the hole for the pot's  tab to keep the pot from shifting.  The resistance is linear until it goes to 0.  There is still considerable turning after 0.
 
-On 8/15 I removed the lead weight.  The weight imbalance amounted to 28 grams at the propeller, which is 41 cm from the pivot.  The other end to the pivot is 12.5 cm.  If we assume that any lead weight will effectively be at half that, 6.25 cm, it will take about 183 gm to balance the arm.  The lead coil weighs 166 gm and ends about 14 cm from the pivot.  The back end weighs 7 gm at this distance.
+On 8/15/18 I removed the lead weight.  The weight imbalance amounted to 28 grams at the propeller, which is 41 cm from the pivot.  The other end to the pivot is 12.5 cm.  If we assume that any lead weight will effectively be at half that, 6.25 cm, it will take about 183 gm to balance the arm.  The lead coil weighs 166 gm and ends about 14 cm from the pivot.  The back end weighs 7 gm at this distance.
+
+In September 2018, I put in a new pot (100 Ohm) which required drilling the shaft hole a bit. I brought it in to MakeIt Labs' "Make It Interesting", but I had bugs related to uninitialized variables.  I had downloaded a new version of Arduino to my laptop.  Code compiled on it failed, code compiled with the older version on the desktop worked.  The failure was unexpected jitteryness (the "0" derivative term wasn't 0).
+ 
+I added flags to support generating tables of data and to dump the integrator when the error crosses 0.
+
+On 10/8/18 I'm looking at the unit with an eye to demoing it.  What can I say about it?  
+There is some friction that depends on the angle.  Show how PID can work around it.
+We should build a tach that uses a light beam.  My phone's strobe takes a while to manually sync, and by the time it does, the motor is getting hot.  The Elegoo Arduino kit, maybe with a photodetector should be able to do it.  Build a voltage (motor command) vs RPM table.
+
+Build a voltage (motor command) vs force table.
+I made a mark 15 cm from the pivot. Set up a couple of books and a kitchen scale with a pencil as a "point contact"
+ 
+ motor command   force @ 15 cm
+ 0	0
+ -10	0
+ -20	0
+ -30	1
+ -40	5
+ -50	8
+ Continued on "AngleTables" spreadsheet
+ 
+I was taking data, stopped for a while, then when I tried again, the motor was fried (open)
+ 
+10/9/18 - The motor may have had a lead-in break.  I got a replacement (Parkzone PKZ3516) I found a spec sheet for a system that works with the motor indicating that the battery should be 3.7V
