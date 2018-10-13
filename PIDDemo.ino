@@ -16,6 +16,7 @@
 // constants 
 const int analogInPin = A0;  // Analog input pin that the potentiometer is attached to
 const char ESC = 0x1B;
+const int motorLimit =160; // emperical. motor voltage 3.17
 
 // globals
 int     potCount = 0;        // value read from the pot
@@ -246,7 +247,7 @@ void PID() {
       }
       
       // motor speed
-      motorSpeed = constrain( int(commandVal), -255, 255 );
+      motorSpeed = constrain( int(commandVal), -motorLimit, motorLimit );
       myMotor->setSpeed( abs(motorSpeed) );
       if ( motorSpeed <= 0 ) {
         myMotor->run(FORWARD);
@@ -483,7 +484,7 @@ void BangBang() {
       break;
     case 'v' : // set motor speed (default = 150)
       motorSpeed = Serial.parseInt();
-      motorSpeed = constrain( motorSpeed, 0, 255);
+      motorSpeed = constrain( motorSpeed, -motorLimit, motorLimit);
       Serial << "new speed = " << motorSpeed << endl;
       break;
       break;
@@ -589,7 +590,7 @@ void ManualMotor() {
       inNum = Serial.parseInt();
       oldSp = sp;
       //limit the speed
-      sp = constrain( inNum, -255, 255 );
+      sp = constrain( inNum, -motorLimit, motorLimit );
       Serial   << "Changing speed from " << oldSp << " to " << sp << endl;
     }
 //    Serial << "inByte = " << inByte << endl;
